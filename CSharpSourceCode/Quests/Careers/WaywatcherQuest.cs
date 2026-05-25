@@ -128,7 +128,9 @@ namespace TOR_Core.Quests.Careers
         {
             Hero.MainHero.AddAttribute("WaywatcherQuestComplete");
             Hero.MainHero.HeroDeveloper.AddAttribute(DefaultCharacterAttributes.Control, 1, false);
-            var bow = MBObjectManager.Instance.GetObject<ItemObject>("tor_we_weapon_bow_012");
+            Hero.MainHero.HeroDeveloper.AddSkillXp(DefaultSkills.Bow, 250_000);
+            Hero.MainHero.HeroDeveloper.AddSkillXp(DefaultSkills.Athletics, 500_000);
+            var bow = MBObjectManager.Instance.GetObject<ItemObject>("tor_we_weapon_bow_legendary");
             if (bow != null)
                 MobileParty.MainParty.ItemRoster.Add(new ItemRosterElement(bow, 1));
         }

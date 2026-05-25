@@ -20,6 +20,7 @@ namespace TOR_Core.Items
     {
         private static readonly float _triggerCooldown = 2;
         private Dictionary<int, Dictionary<string, float>> _traitCoolDownMap = new();
+        private Dictionary<int, List<ItemTrait>> _missileTraitCache = new();
         private float _deltaTime;
         public override void OnAgentBuild(Agent agent, Banner banner)
         {
@@ -76,6 +77,7 @@ namespace TOR_Core.Items
         {
             base.OnBattleEnded();
             _traitCoolDownMap.Clear();
+            _missileTraitCache.Clear();
             _deltaTime = 0f;
         }
 
@@ -267,7 +269,8 @@ namespace TOR_Core.Items
 
             return typeof(TriggerOnKillScript).IsAssignableFrom(scriptType) ||
                    typeof(KnockOutCheckTriggerScript).IsAssignableFrom(scriptType) ||
-                   typeof(BuffStackOnKill).IsAssignableFrom(scriptType);
+                   typeof(BuffStackOnKill).IsAssignableFrom(scriptType) ||
+                   typeof(WeaponTriggerEffectScript).IsAssignableFrom(scriptType);
         }
 
         private static bool CanUseOffensiveWeaponTraitTarget(Agent affectedAgent, Agent affectorAgent)
@@ -390,7 +393,7 @@ namespace TOR_Core.Items
             }
             target.ApplyStatusEffect(effectId, applierAgent, duration, append, isMutated);
         }
-        private void ApplySpecialTrait(ItemTrait trait, Agent affectorAgent, Agent affectedAgent, bool cooldownOnTarget, Blow blow, MissionWeapon affectorWeapon, AttackCollisionData attackCollisionData, bool fromMissile = false)
+        private void ApplySpecialTrait(ItemTrait trait, Agent affectorAgent, Agent affectedAgent, bool cooldownOnTarget, Blow blow, MissionWeapon affectorWeapon, AttackCollisionData attackCollisionData, bool fromMissile = false, bool bypassCooldown = false)
         {
             var targetAgent = cooldownOnTarget ? affectedAgent : affectorAgent;
             if (targetAgent == null)
@@ -403,7 +406,7 @@ namespace TOR_Core.Items
                 return;
             }
 
-            if (MBRandom.RandomFloatRanged(0f, 1f) > trait.ImbuedEffectChance)
+            if (!bypassCooldown && MBRandom.RandomFloatRanged(0f, 1f) > trait.ImbuedEffectChance)
             {
                 return;
             }
@@ -412,7 +415,7 @@ namespace TOR_Core.Items
             var cooldownOnWielder = !cooldownOnTarget;
             var triggeredEffectId = GetWeaponTriggerEffectId(trait);
 
-            if (IsTraitOnCooldown(trait, targetAgent))
+            if (!bypassCooldown && IsTraitOnCooldown(trait, targetAgent))
             {
                 return;
             }
@@ -442,8 +445,8 @@ namespace TOR_Core.Items
                 if (script is BaseWeaponHitScript weaponHitScript)
                 {
                     weaponHitScript.OnHit(affectorAgent, affectedAgent, blow, affectorWeapon, attackCollisionData);
-                    RegisterTraitCooldown(trait, targetAgent);
-
+                    if (!bypassCooldown)
+                        RegisterTraitCooldown(trait, targetAgent);
                 }
 
             }
@@ -462,10 +465,18 @@ namespace TOR_Core.Items
                 return;
             }
 
-            if (!HasWeaponWithTrait(attacker, out var traits))
+            var missileIdx = collisionData.AffectorWeaponSlotOrMissileIndex;
+            List<ItemTrait> traits;
+            if (_missileTraitCache.TryGetValue(missileIdx, out var cached))
+            {
+                traits = cached;
+                _missileTraitCache.Remove(missileIdx);
+            }
+            else if (!HasWeaponWithTrait(attacker, out traits))
             {
                 return;
             }
+            if (traits == null || traits.Count == 0) return;
 
             bool canApplyTraitsToVictim = victim != null && victim.IsActive() && victim.Health > 0f && !victim.IsFadingOut();
 
@@ -494,7 +505,11 @@ namespace TOR_Core.Items
                         ApplyWeaponStatusEffect(victim, "starfire_fire_vulnerability", attacker, 6, false);
                     }
                 }
+            }
 
+            // On-hit scripts fire on any hit, including killing blows
+            if (victim != null)
+            {
                 var onHitTraits = traits.WhereQ(x =>
                     x.OnWeaponHitScript != null &&
                     !string.IsNullOrWhiteSpace(x.OnWeaponHitScript.WeaponScriptName) &&
@@ -504,7 +519,8 @@ namespace TOR_Core.Items
                 {
                     foreach (var trait in onHitTraits)
                     {
-                        ApplySpecialTrait(trait, attacker, victim, false, default, attacker.WieldedWeapon, collisionData, true);
+                        bool isLethalShotTrait = trait.ItemTraitStringId?.StartsWith("ca_lethal_shot") == true;
+                        ApplySpecialTrait(trait, attacker, victim, false, default, attacker.WieldedWeapon, collisionData, true, bypassCooldown: isLethalShotTrait);
                     }
                 }
             }
@@ -535,6 +551,8 @@ namespace TOR_Core.Items
                                 missile.Entity.AddParticleSystemComponent(trait.WeaponParticlePreset.ParticlePrefab);
                             }
                         }
+                        // Cache traits now before HandleLethalShotConsumption can strip them
+                        _missileTraitCache[missile.Index] = traits;
                     }
 
                     // Lethal Shot consumption - only for player with Waywatcher career - in future maybe more

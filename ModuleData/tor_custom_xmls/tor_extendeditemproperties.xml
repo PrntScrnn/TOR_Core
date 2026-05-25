@@ -6954,4 +6954,10 @@
     </ItemTraits>
     <Description />
   </ExtendedItemObjectProperties>
+  <ExtendedItemObjectProperties ItemStringId="tor_we_weapon_bow_legendary">
+    <ItemTraits>
+      <ItemTrait>ca_lethal_shot_moonfire</ItemTrait>
+    </ItemTraits>
+    <Description />
+  </ExtendedItemObjectProperties>
 </ArrayOfExtendedItemObjectProperties>
