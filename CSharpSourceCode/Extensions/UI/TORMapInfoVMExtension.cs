@@ -277,15 +277,17 @@ namespace TOR_Core.Extensions.UI
         {
             base.RefreshValues();
             var mapInfoVm = (MapInfoVM)_vm;
+            mapInfoVm.IsInfoBarExtended = true;
             ReplaceSpeedInfoItemIfNeeded(mapInfoVm);
             if (_hasBaseVMBeenInitialized && !_haveInfoItemsBeenAdded)
             {
-                (_vm as MapInfoVM).SecondaryInfoItems.Add(_windsInfo);
-                (_vm as MapInfoVM).SecondaryInfoItems.Add(_artilleryInfo);
-                (_vm as MapInfoVM).SecondaryInfoItems.Add(_resourceInfo);
-                (_vm as MapInfoVM).SecondaryInfoItems.Add(_blessingInfo);
+                mapInfoVm.SecondaryInfoItems.Add(_windsInfo);
+                mapInfoVm.SecondaryInfoItems.Add(_artilleryInfo);
+                mapInfoVm.SecondaryInfoItems.Add(_resourceInfo);
+                mapInfoVm.SecondaryInfoItems.Add(_blessingInfo);
                 _haveInfoItemsBeenAdded = true;
             }
+            _hasBaseVMBeenInitialized = true;
             var nowTimestamp = Stopwatch.GetTimestamp();
             if (_lastRefreshTimestamp != 0 &&
                 (nowTimestamp - _lastRefreshTimestamp) <= MapInfoRefreshThrottleTicks)
@@ -330,7 +332,6 @@ namespace TOR_Core.Extensions.UI
             }
             else _blessingInfo.Value = "-";
 
-            _hasBaseVMBeenInitialized = true;
         }
 
         private String GetBlessingTimeInDays(int blessingHours)
