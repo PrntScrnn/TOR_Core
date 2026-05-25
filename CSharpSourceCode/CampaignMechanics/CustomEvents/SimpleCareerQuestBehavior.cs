@@ -5,6 +5,7 @@ using TaleWorlds.Core;
 using TOR_Core.CharacterDevelopment;
 using TOR_Core.Extensions;
 using TOR_Core.Ink;
+using TOR_Core.Quests;
 
 namespace TOR_Core.CampaignMechanics.CustomEvents
 {
@@ -15,6 +16,7 @@ namespace TOR_Core.CampaignMechanics.CustomEvents
     public class SimpleCareerQuestBehavior : CampaignBehaviorBase
     {
         private readonly Dictionary<string, string> _careerStories = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> _careerQuestIds = new Dictionary<string, string>();
 
         private bool _hasShownCareerStory = false;
 
@@ -46,24 +48,30 @@ namespace TOR_Core.CampaignMechanics.CustomEvents
             // OrcShaman career requires praying at a shrine first
             // The initial story "OrcShamanPrayerPrompt" is handled separately
             _careerStories.Add("OrcShaman", "OrcShamanPrayerPrompt");
+
+            _careerQuestIds.Clear();
+            _careerQuestIds.Add("Waywatcher", "Quests.Careers.WaywatcherQuest");
         }
 
         private void HourlyTick()
         {
-            // Only check once and only if we haven't shown a career story yet
-            if (_hasShownCareerStory)
-                return;
+            var playerCareer = Hero.MainHero.GetCareer();
+            if (playerCareer == null) return;
 
-            var id = Hero.MainHero.GetCareer() != null ? Hero.MainHero.GetCareer().StringId : "";
-            if (!_careerStories.ContainsKey(id))
-                return;
-
-            if (!StandardMovingCheck())
-                return;
-
-            if (TryLaunchCareerStory())
+            // Direct quest starts — idempotent, safe to call every tick
+            if (_careerQuestIds.TryGetValue(playerCareer.StringId, out string questPath))
             {
-                _hasShownCareerStory = true;
+                TORQuestHelper.StartCareerQuest(questPath);
+            }
+
+            // Ink story launches (once only, requires player to be on the move)
+            if (!_hasShownCareerStory && _careerStories.ContainsKey(playerCareer.StringId))
+            {
+                if (!StandardMovingCheck())
+                    return;
+
+                if (TryLaunchCareerStory())
+                    _hasShownCareerStory = true;
             }
         }
 

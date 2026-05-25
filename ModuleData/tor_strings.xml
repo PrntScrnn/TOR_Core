@@ -4988,6 +4988,15 @@
   <string id="tor_duel_accept_victory" text="{=str_tor_duel_accept_victory}Claim your victory!" />
   <string id="tor_duel_accept_defeat" text="{=str_tor_duel_accept_defeat}Accept your defeat" />
 
+  <!-- Waywatcher Quest -->
+  <string id="tor_waywatcher_quest_title" text="{=str_tor_waywatcher_quest_title}The Path of the Waywatcher" />
+  <string id="tor_waywatcher_quest_log_bow" text="{=str_tor_waywatcher_quest_log_bow}Reach {REQUIRED} in the Bow skill" />
+  <string id="tor_waywatcher_quest_task_bow" text="{=str_tor_waywatcher_quest_task_bow}Bow Skill" />
+  <string id="tor_waywatcher_quest_log_athletics" text="{=str_tor_waywatcher_quest_log_athletics}Reach {REQUIRED} in the Athletics skill" />
+  <string id="tor_waywatcher_quest_task_athletics" text="{=str_tor_waywatcher_quest_task_athletics}Athletics Skill" />
+  <string id="tor_waywatcher_quest_log_battles" text="{=str_tor_waywatcher_quest_log_battles}Win {REQUIRED} battles" />
+  <string id="tor_waywatcher_quest_task_battles" text="{=str_tor_waywatcher_quest_task_battles}Battles Won" />
+
   <!-- Orc Boss Quest 1 -->
   <string id="tor_orc_boss_quest1_title" text="{=str_tor_orc_boss_quest1_title}Da Path of Da Boss" />
   <string id="tor_orc_boss_quest1_log_onehanded" text="{=str_tor_orc_boss_quest1_log_onehanded}Reach {REQUIRED} of the One-Handed skill" />
