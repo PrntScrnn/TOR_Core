@@ -16,7 +16,7 @@ namespace TOR_Core.Quests.Careers
     {
         private const int RequiredBowSkill = 100;
         private const int RequiredAthleticsSkill = 100;
-        private const int RequiredBattlesWon = 30;
+        private const int RequiredBattlesWon = 5;
         private const int RequiredForestHarmony = 1500;
 
         [SaveableField(1)]
