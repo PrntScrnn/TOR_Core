@@ -285,14 +285,19 @@ namespace TOR_Core.Items
 
         private static bool CanApplyOffensiveWeaponTrait(ItemTrait trait, Agent affectedAgent, Agent affectorAgent, Blow blow)
         {
-            if (!CanUseOffensiveWeaponTraitTarget(affectedAgent, affectorAgent))
-            {
+            if (affectedAgent == null || affectorAgent == null || affectedAgent == affectorAgent)
                 return false;
-            }
 
+            // Kill scripts bypass the IsFadingOut/IsActive guard — the agent begins fading the
+            // same frame the killing blow is processed, before OnAgentHit runs.
             if (IsTriggerOnKillScript(trait))
             {
                 return affectedAgent.Health <= 0f && !blow.IsMissile;
+            }
+
+            if (!CanUseOffensiveWeaponTraitTarget(affectedAgent, affectorAgent))
+            {
+                return false;
             }
 
             return affectedAgent.Health > 0f;
