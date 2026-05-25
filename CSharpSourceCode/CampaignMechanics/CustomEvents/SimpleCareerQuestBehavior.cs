@@ -19,14 +19,11 @@ namespace TOR_Core.CampaignMechanics.CustomEvents
         private readonly Dictionary<string, string> _careerQuestIds = new Dictionary<string, string>();
 
         private bool _hasShownCareerStory = false;
+        private List<string> _launchedCareerQuestIds = new List<string>();
 
         public override void RegisterEvents()
         {
-            if (!_hasShownCareerStory)
-            {
-                CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, HourlyTick);
-            }
-
+            CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, HourlyTick);
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionStart);
         }
 
@@ -58,10 +55,12 @@ namespace TOR_Core.CampaignMechanics.CustomEvents
             var playerCareer = Hero.MainHero.GetCareer();
             if (playerCareer == null) return;
 
-            // Direct quest starts — idempotent, safe to call every tick
-            if (_careerQuestIds.TryGetValue(playerCareer.StringId, out string questPath))
+            // Direct quest starts — only once per career
+            if (_careerQuestIds.TryGetValue(playerCareer.StringId, out string questPath) &&
+                !_launchedCareerQuestIds.Contains(playerCareer.StringId))
             {
                 TORQuestHelper.StartCareerQuest(questPath);
+                _launchedCareerQuestIds.Add(playerCareer.StringId);
             }
 
             // Ink story launches (once only, requires player to be on the move)
@@ -106,6 +105,7 @@ namespace TOR_Core.CampaignMechanics.CustomEvents
         public override void SyncData(IDataStore dataStore)
         {
             dataStore.SyncData("_hasShownCareerStory", ref _hasShownCareerStory);
+            dataStore.SyncData("_launchedCareerQuestIds", ref _launchedCareerQuestIds);
         }
     }
 }
