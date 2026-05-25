@@ -6,6 +6,7 @@ using TaleWorlds.Core;
 using TaleWorlds.Localization;
 using TaleWorlds.ObjectSystem;
 using TaleWorlds.SaveSystem;
+using TOR_Core.CampaignMechanics.CustomResources;
 using TOR_Core.Extensions;
 using TOR_Core.Utilities;
 
@@ -16,6 +17,7 @@ namespace TOR_Core.Quests.Careers
         private const int RequiredBowSkill = 100;
         private const int RequiredAthleticsSkill = 100;
         private const int RequiredBattlesWon = 30;
+        private const int RequiredForestHarmony = 1500;
 
         [SaveableField(1)]
         private JournalLog _taskBowSkill = null;
@@ -23,6 +25,8 @@ namespace TOR_Core.Quests.Careers
         private JournalLog _taskAthleticsSkill = null;
         [SaveableField(3)]
         private JournalLog _taskBattlesWon = null;
+        [SaveableField(8)]
+        private JournalLog _taskForestHarmony = null;
 
         [SaveableField(4)]
         private int _currentBowSkillLevel = 0;
@@ -64,6 +68,14 @@ namespace TOR_Core.Quests.Careers
                 TORTextHelper.GetTextObject("tor_waywatcher_quest_task_battles", "Battles Won"),
                 _currentBattlesWon,
                 RequiredBattlesWon);
+
+            var currentHarmony = (int)Hero.MainHero.GetCustomResourceValue("ForestHarmony");
+            _taskForestHarmony = AddDiscreteLog(
+                TORTextHelper.GetTextObject("tor_waywatcher_quest_log_harmony", "Reach {REQUIRED} Forest Harmony")
+                    .SetTextVariable("REQUIRED", RequiredForestHarmony),
+                TORTextHelper.GetTextObject("tor_waywatcher_quest_task_harmony", "Forest Harmony"),
+                currentHarmony,
+                RequiredForestHarmony);
         }
 
         protected override void RegisterEvents()
@@ -113,6 +125,9 @@ namespace TOR_Core.Quests.Careers
 
         private void UpdateQuest()
         {
+            var currentHarmony = (int)Hero.MainHero.GetCustomResourceValue("ForestHarmony");
+            _taskForestHarmony.UpdateCurrentProgress(currentHarmony);
+
             if (AreAllTasksFinished() && !_readyToComplete)
             {
                 _readyToComplete = true;
