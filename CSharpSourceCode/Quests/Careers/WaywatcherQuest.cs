@@ -1,12 +1,12 @@
 using System.Linq;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.MapEvents;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 using TaleWorlds.Localization;
 using TaleWorlds.ObjectSystem;
 using TaleWorlds.SaveSystem;
 using TOR_Core.CampaignMechanics.CustomResources;
+using TOR_Core.CampaignMechanics.TORCustomSettlement;
 using TOR_Core.Extensions;
 using TOR_Core.Utilities;
 
@@ -16,24 +16,22 @@ namespace TOR_Core.Quests.Careers
     {
         private const int RequiredBowSkill = 100;
         private const int RequiredAthleticsSkill = 100;
-        private const int RequiredBattlesWon = 5;
         private const int RequiredForestHarmony = 1500;
+        private const int RequiredOakUpgrades = 3;
 
         [SaveableField(1)]
         private JournalLog _taskBowSkill = null;
         [SaveableField(2)]
         private JournalLog _taskAthleticsSkill = null;
-        [SaveableField(3)]
-        private JournalLog _taskBattlesWon = null;
         [SaveableField(8)]
         private JournalLog _taskForestHarmony = null;
+        [SaveableField(9)]
+        private JournalLog _taskOakUpgrades = null;
 
         [SaveableField(4)]
         private int _currentBowSkillLevel = 0;
         [SaveableField(5)]
         private int _currentAthleticsSkillLevel = 0;
-        [SaveableField(6)]
-        private int _currentBattlesWon = 0;
         [SaveableField(7)]
         private bool _readyToComplete = false;
 
@@ -46,7 +44,6 @@ namespace TOR_Core.Quests.Careers
         {
             _currentBowSkillLevel = Hero.MainHero?.GetSkillValue(DefaultSkills.Bow) ?? 0;
             _currentAthleticsSkillLevel = Hero.MainHero?.GetSkillValue(DefaultSkills.Athletics) ?? 0;
-            _currentBattlesWon = 0;
 
             _taskBowSkill = AddDiscreteLog(
                 TORTextHelper.GetTextObject("tor_waywatcher_quest_log_bow", "Reach {REQUIRED} in the Bow skill")
@@ -62,13 +59,6 @@ namespace TOR_Core.Quests.Careers
                 _currentAthleticsSkillLevel,
                 RequiredAthleticsSkill);
 
-            _taskBattlesWon = AddDiscreteLog(
-                TORTextHelper.GetTextObject("tor_waywatcher_quest_log_battles", "Win {REQUIRED} battles")
-                    .SetTextVariable("REQUIRED", RequiredBattlesWon),
-                TORTextHelper.GetTextObject("tor_waywatcher_quest_task_battles", "Battles Won"),
-                _currentBattlesWon,
-                RequiredBattlesWon);
-
             var currentHarmony = (int)Hero.MainHero.GetCustomResourceValue("ForestHarmony");
             _taskForestHarmony = AddDiscreteLog(
                 TORTextHelper.GetTextObject("tor_waywatcher_quest_log_harmony", "Reach {REQUIRED} Forest Harmony")
@@ -76,6 +66,14 @@ namespace TOR_Core.Quests.Careers
                 TORTextHelper.GetTextObject("tor_waywatcher_quest_task_harmony", "Forest Harmony"),
                 currentHarmony,
                 RequiredForestHarmony);
+
+            var currentOakUpgrades = GetOakUpgradeCount();
+            _taskOakUpgrades = AddDiscreteLog(
+                TORTextHelper.GetTextObject("tor_waywatcher_quest_log_oak", "Purchase {REQUIRED} upgrades from the Oak of Ages")
+                    .SetTextVariable("REQUIRED", RequiredOakUpgrades),
+                TORTextHelper.GetTextObject("tor_waywatcher_quest_task_oak", "Oak of Ages Upgrades"),
+                currentOakUpgrades,
+                RequiredOakUpgrades);
         }
 
         protected override void RegisterEvents()
@@ -83,8 +81,6 @@ namespace TOR_Core.Quests.Careers
             base.RegisterEvents();
 
             CampaignEvents.HeroGainedSkill.AddNonSerializedListener(this, OnSkillIncreased);
-            CampaignEvents.OnPlayerBattleEndEvent.AddNonSerializedListener(this, OnPlayerBattleEnded);
-            CampaignEvents.MapEventEnded.AddNonSerializedListener(this, OnMapEventEnded);
         }
 
         private void OnSkillIncreased(Hero hero, SkillObject skill, int skillValueBefore, bool arg4)
@@ -105,22 +101,6 @@ namespace TOR_Core.Quests.Careers
             }
         }
 
-        private void OnPlayerBattleEnded(MapEvent mapEvent)
-        {
-            _currentBattlesWon++;
-            _taskBattlesWon.UpdateCurrentProgress(_currentBattlesWon);
-            UpdateQuest();
-        }
-
-        private void OnMapEventEnded(MapEvent mapEvent)
-        {
-            if (!TORQuestHelper.WasClanOrKingdomBattleWon(mapEvent)) return;
-
-            _currentBattlesWon++;
-            _taskBattlesWon.UpdateCurrentProgress(_currentBattlesWon);
-            UpdateQuest();
-        }
-
         public override string SpecialQuestType => "WaywatcherQuest";
 
         private void UpdateQuest()
@@ -128,10 +108,21 @@ namespace TOR_Core.Quests.Careers
             var currentHarmony = (int)Hero.MainHero.GetCustomResourceValue("ForestHarmony");
             _taskForestHarmony.UpdateCurrentProgress(currentHarmony);
 
+            _taskOakUpgrades.UpdateCurrentProgress(GetOakUpgradeCount());
+
             if (AreAllTasksFinished() && !_readyToComplete)
             {
                 _readyToComplete = true;
             }
+        }
+
+        private static int GetOakUpgradeCount()
+        {
+            var behavior = Campaign.Current.GetCampaignBehavior<TORCustomSettlementCampaignBehavior>();
+            if (behavior == null) return 0;
+            return behavior.GetUnlockedOakUpgradeCategory("WEPartySizeUpgrade").Count
+                 + behavior.GetUnlockedOakUpgradeCategory("WEHealthUpgrade").Count
+                 + behavior.GetUnlockedOakUpgradeCategory("WEGainUpgrade").Count;
         }
 
         private bool AreAllTasksFinished()
@@ -143,8 +134,6 @@ namespace TOR_Core.Quests.Careers
         {
             Hero.MainHero.AddAttribute("WaywatcherQuestComplete");
             Hero.MainHero.HeroDeveloper.AddAttribute(DefaultCharacterAttributes.Control, 1, false);
-            Hero.MainHero.HeroDeveloper.AddSkillXp(DefaultSkills.Bow, 250_000);
-            Hero.MainHero.HeroDeveloper.AddSkillXp(DefaultSkills.Athletics, 500_000);
             var bow = MBObjectManager.Instance.GetObject<ItemObject>("tor_we_weapon_bow_legendary");
             if (bow != null)
                 MobileParty.MainParty.ItemRoster.Add(new ItemRosterElement(bow, 1));

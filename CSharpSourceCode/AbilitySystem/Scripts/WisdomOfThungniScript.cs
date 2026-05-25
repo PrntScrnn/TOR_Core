@@ -33,6 +33,8 @@ public class WisdomOfThungniScript : CareerAbilityScript
         var comp = agent.GetComponent<ItemTraitAgentComponent>();
         if (comp != null) comp.AddTraitToWieldedWeapon(trait, ability.Template.Duration);
 
+        agent.ApplyStatusEffect("thungni_attribute", agent, (int)ability.Template.Duration);
+
         foreach (var element in abilityComponent.KnownAbilitySystem)
         {
             if (!element.IsOnCooldown()) continue;
