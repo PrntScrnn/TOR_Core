@@ -1,8 +1,10 @@
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.MapEvents;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 using TaleWorlds.Localization;
+using TaleWorlds.ObjectSystem;
 using TaleWorlds.SaveSystem;
 using TOR_Core.Extensions;
 using TOR_Core.Utilities;
@@ -125,6 +127,10 @@ namespace TOR_Core.Quests.Careers
         protected override void OnCompleteWithSuccess()
         {
             Hero.MainHero.AddAttribute("WaywatcherQuestComplete");
+            Hero.MainHero.HeroDeveloper.AddAttribute(DefaultCharacterAttributes.Control, 1, false);
+            var bow = MBObjectManager.Instance.GetObject<ItemObject>("tor_we_weapon_bow_012");
+            if (bow != null)
+                MobileParty.MainParty.ItemRoster.Add(new ItemRosterElement(bow, 1));
         }
 
         protected override void SetDialogs() { }
