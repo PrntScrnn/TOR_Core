@@ -6,6 +6,7 @@ using TOR_Core.CharacterDevelopment;
 using TOR_Core.Extensions;
 using TOR_Core.Ink;
 using TOR_Core.Quests;
+using TOR_Core.Utilities;
 
 namespace TOR_Core.CampaignMechanics.CustomEvents
 {
@@ -57,7 +58,8 @@ namespace TOR_Core.CampaignMechanics.CustomEvents
 
             // Direct quest starts — only once per career
             if (_careerQuestIds.TryGetValue(playerCareer.StringId, out string questPath) &&
-                !_launchedCareerQuestIds.Contains(playerCareer.StringId))
+                !_launchedCareerQuestIds.Contains(playerCareer.StringId) &&
+                IsEligibleForCareerQuest(playerCareer.StringId))
             {
                 TORQuestHelper.StartCareerQuest(questPath);
                 _launchedCareerQuestIds.Add(playerCareer.StringId);
@@ -71,6 +73,17 @@ namespace TOR_Core.CampaignMechanics.CustomEvents
 
                 if (TryLaunchCareerStory())
                     _hasShownCareerStory = true;
+            }
+        }
+
+        private static bool IsEligibleForCareerQuest(string careerId)
+        {
+            switch (careerId)
+            {
+                case "Waywatcher":
+                    return Hero.MainHero.Culture.StringId == TORConstants.Cultures.ASRAI;
+                default:
+                    return true;
             }
         }
 
